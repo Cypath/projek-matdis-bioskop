@@ -890,8 +890,7 @@ def tampilkan_halaman_daftar_film():
 def tampilkan_header_bioskop():
     st.markdown(
         '<header class="hero">'
-        '<span class="hero-kicker">BIOSKOP</span>'
-        '<h1>🎬 Aplikasi Pemesanan Tiket Bioskop</h1>'
+        '<h1>🎬 Website Pemesanan Tiket Bioskop</h1>'
         '<p>Pilih film, jadwal tayang, dan kursi favorit Anda.</p>'
         '</header>',
         unsafe_allow_html=True,
