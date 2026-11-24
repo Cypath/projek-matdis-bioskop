@@ -9,7 +9,7 @@ import streamlit as st
 
 
 st.set_page_config(
-    page_title="Bioskop Matdis · Pemesanan Tiket",
+    page_title="Website Pemesanan Tiket Bioskop",
     page_icon="🎬",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -440,6 +440,14 @@ def html_kartu_film(film):
 CSS_PATH = Path(__file__).resolve().with_name("styles.css")
 st.markdown(
     f"<style>{CSS_PATH.read_text(encoding='utf-8')}</style>",
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """<header class="hero">
+      <h1>🎬 Website Pemesanan Tiket Bioskop</h1>
+      <p>Pilih film, jadwal tayang, dan kursi favorit Anda.</p>
+    </header>""",
     unsafe_allow_html=True,
 )
 
@@ -908,7 +916,6 @@ else:
     with tab_riwayat:
         tampilkan_riwayat()
 
-st.caption("Bioskop Matdis · Pilih film dan jadwal, lalu pesan kursi pilihan Anda.")
 st.markdown(
     '<div class="identitas-mahasiswa"><strong>M. Bintang Al Akbar. M</strong><br><strong>F1E126032</strong></div>',
     unsafe_allow_html=True,
