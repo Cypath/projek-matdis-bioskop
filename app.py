@@ -765,6 +765,7 @@ def tampilkan_form_pemesanan(film):
                     "<div class='auditorium-entrance auditorium-entrance-seat'>PINTU MASUK</div>",
                     unsafe_allow_html=True,
                 )
+            st.caption("Baris H berada paling dekat dengan layar. Susunan kursi setiap baris: 3–6–3.")
             aturan_warna_kursi = ["<style>"]
             for kode in semua_kursi():
                 if kode in kursi_terpesan:
