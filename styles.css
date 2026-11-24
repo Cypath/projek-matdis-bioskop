@@ -11,6 +11,9 @@
 .stApp .hero h1 {position:relative;z-index:1;margin:0;color:#fff!important;
   font-family:'Space Grotesk','Segoe UI',sans-serif;font-size:clamp(1.55rem,3vw,2.35rem);
   font-weight:800;line-height:1.18;letter-spacing:-.035em;}
+.stApp .hero h1 a,
+.stApp .hero h1 button,
+.stApp .hero [data-testid="stHeaderActionElements"] {display:none!important;}
 .stApp .hero p {position:relative;z-index:1;margin:.55rem 0 0;color:#e5edff!important;
   font-size:.98rem;line-height:1.5;}
 :root {
