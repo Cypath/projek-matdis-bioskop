@@ -887,10 +887,22 @@ def tampilkan_halaman_daftar_film():
         tampilkan_riwayat()
 
 
+def tampilkan_header_bioskop():
+    st.markdown(
+        '<header class="hero">'
+        '<span class="hero-kicker">BIOSKOP</span>'
+        '<h1>🎬 Aplikasi Pemesanan Tiket Bioskop</h1>'
+        '<p>Pilih film, jadwal tayang, dan kursi favorit Anda.</p>'
+        '</header>',
+        unsafe_allow_html=True,
+    )
+
+
 def main():
     muat_css()
     inisialisasi_state()
     sinkronkan_film_dari_url()
+    tampilkan_header_bioskop()
 
     if st.session_state.halaman == "pemesanan" and st.session_state.film_aktif:
         with st.container():
