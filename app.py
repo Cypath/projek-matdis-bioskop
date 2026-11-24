@@ -1,6 +1,5 @@
 from base64 import b64encode
 from datetime import date, datetime, timedelta, timezone
-from heapq import heappop, heappush
 from html import escape
 from pathlib import Path
 from uuid import uuid4
@@ -310,79 +309,6 @@ def semua_kursi():
 
 
 # ---------------------------------------------------------------------------
-# Matematika diskrit: teori graf dan algoritma Dijkstra
-# ---------------------------------------------------------------------------
-def rute_terpendek_ke_kursi(tujuan):
-    # Penerapan teori graf dan algoritma Dijkstra pada denah auditorium.
-    #
-    # Model yang digunakan:
-    # - Simpul (vertex): pintu masuk dan setiap posisi kursi, misalnya A1 atau H12.
-    # - Sisi (edge): hubungan antara posisi kursi yang bertetangga secara horizontal
-    #   atau vertikal. Pintu terhubung ke A6 dan A7 karena berada di antara keduanya.
-    # - Bobot sisi: 1 unit untuk perpindahan biasa dan 3 unit saat melintasi lorong
-    #   pemisah blok 3-6-3. Nilai ini adalah bobot simulasi, bukan ukuran meter.
-    #
-    # Dijkstra memulai jarak pintu dari 0, lalu berulang kali memproses simpul dengan
-    # jarak terkecil. Jarak tetangga diperbarui jika rute baru lebih murah. Setelah
-    # kursi tujuan tercapai, kamus `sebelumnya` dipakai untuk menyusun kembali rute.
-    #
-    # Argumen:
-    #   tujuan: kode kursi tujuan yang ada pada denah, misalnya "H8".
-    # Keluaran:
-    #   pasangan (daftar simpul rute dari PINTU, total bobot rute).
-
-    # Bentuk graf tak berarah: hubungan berjalan berlaku dua arah.
-    graf = {"PINTU": []}
-    for indeks_baris, baris in enumerate(BARIS_KURSI):
-        for kolom in range(1, KOLOM_KURSI + 1):
-            asal = f"{baris}{kolom}"
-            graf.setdefault(asal, [])
-
-            if kolom < KOLOM_KURSI:
-                kanan = f"{baris}{kolom + 1}"
-                # Penyeberangan celah antarblok dibuat lebih berat daripada langkah biasa.
-                bobot = 3 if kolom in (3, 9) else 1
-                graf[asal].append((kanan, bobot))
-                graf.setdefault(kanan, []).append((asal, bobot))
-
-            if indeks_baris < len(BARIS_KURSI) - 1:
-                bawah = f"{BARIS_KURSI[indeks_baris + 1]}{kolom}"
-                graf[asal].append((bawah, 1))
-                graf.setdefault(bawah, []).append((asal, 1))
-
-    # Baris A adalah bagian belakang auditorium; pintu dimodelkan di antara A6 dan A7.
-    graf["PINTU"] = [("A6", 1), ("A7", 1)]
-
-    # Tahap 1 Dijkstra: inisialisasi jarak semua simpul dengan tak hingga,
-    # kecuali simpul awal PINTU yang jaraknya nol.
-    jarak = {titik: float("inf") for titik in graf}
-    sebelumnya = {}
-    jarak["PINTU"] = 0
-    antrean = [(0, "PINTU")]
-
-    # Tahap 2: pilih simpul berjarak terkecil dan lakukan relaksasi sisi-sisinya.
-    while antrean:
-        biaya, titik = heappop(antrean)
-        if biaya != jarak[titik]:
-            continue
-        if titik == tujuan:
-            break
-        for tetangga, bobot in graf[titik]:
-            biaya_baru = biaya + bobot
-            if biaya_baru < jarak[tetangga]:
-                jarak[tetangga] = biaya_baru
-                sebelumnya[tetangga] = titik
-                heappush(antrean, (biaya_baru, tetangga))
-
-    # Tahap 3: telusuri simpul sebelumnya dari tujuan untuk membentuk rute akhir.
-    rute = [tujuan]
-    while rute[-1] != "PINTU":
-        rute.append(sebelumnya[rute[-1]])
-    rute.reverse()
-    return rute, int(jarak[tujuan])
-
-
-# ---------------------------------------------------------------------------
 # Poster dan logo (dibaca sekali lalu disimpan di cache agar rerun tetap ringan)
 # ---------------------------------------------------------------------------
 @st.cache_data(show_spinner=False)
@@ -417,7 +343,7 @@ def gambar_poster(film):
       <text x="210" y="275" text-anchor="middle" fill="#fff" font-size="118" font-family="Arial,sans-serif">{ikon}</text>
       <text x="210" y="440" text-anchor="middle" fill="#fff" font-size="25" font-weight="700" font-family="Arial,sans-serif">{judul}</text>
       <text x="210" y="474" text-anchor="middle" fill="#e2e8f0" font-size="13" letter-spacing="2" font-family="Arial,sans-serif">{genre}</text>
-      <text x="210" y="555" text-anchor="middle" fill="#ffffff" fill-opacity=".72" font-size="11" letter-spacing="3" font-family="Arial,sans-serif">ILUSTRASI PROYEK MATDIS</text>
+      <text x="210" y="555" text-anchor="middle" fill="#ffffff" fill-opacity=".72" font-size="11" letter-spacing="3" font-family="Arial,sans-serif">ILUSTRASI FILM</text>
     </svg>'''
 
 
@@ -518,7 +444,7 @@ def html_kartu_tiket(pesanan, tiket, nomor_tiket, jumlah_tiket):
     return (
         '<article class="ticket-card">'
         '<div class="ticket-main">'
-        '<header class="ticket-head"><span class="ticket-brand">BIOSKOP MATDIS</span>'
+        '<header class="ticket-head"><span class="ticket-brand">BIOSKOP</span>'
         f'<span class="ticket-type">TIKET {nomor_tiket}</span></header>'
         f'<h3 class="ticket-title">{film_tiket}</h3>'
         '<div class="ticket-info">'
@@ -656,7 +582,6 @@ def tampilkan_denah_kursi(kursi_terpesan):
                 '<div class="auditorium-entrance-seat">PINTU<br>MASUK</div>',
                 unsafe_allow_html=True,
             )
-        st.caption("Baris H berada paling dekat dengan layar. Susunan kursi setiap baris: 3–6–3.")
         st.markdown(
             css_status_kursi(kursi_terpesan, st.session_state.kursi_dipilih),
             unsafe_allow_html=True,
@@ -666,26 +591,6 @@ def tampilkan_denah_kursi(kursi_terpesan):
             kolom_denah = st.columns(LEBAR_KOLOM_DENAH, gap="small")
             for nomor, indeks_kolom in enumerate(INDEKS_KOLOM_KURSI, start=1):
                 tampilkan_kursi(f"{baris}{nomor}", kursi_terpesan, kolom_denah[indeks_kolom])
-
-
-def tampilkan_rute_dijkstra(kursi_dipilih):
-    with st.expander("Penerapan Matematika Diskrit · Graf dan Dijkstra"):
-        st.markdown(
-            "**Tujuan:** mencari rute dengan total bobot paling kecil dari pintu "
-            "auditorium ke kursi yang dipilih.\n\n"
-            "**Model graf:** simpul adalah pintu dan posisi kursi; sisi menghubungkan "
-            "kursi yang berdekatan. Setiap langkah biasa berbobot 1, sedangkan "
-            "perpindahan melintasi lorong antarblok berbobot 3. Bobot ini merupakan "
-            "satuan simulasi, bukan jarak dalam meter.\n\n"
-            "**Cara kerja:** Dijkstra membandingkan akumulasi bobot dari pintu, "
-            "memperbarui rute yang lebih murah, lalu menampilkan jalur menuju kursi."
-        )
-        for kursi in kursi_dipilih:
-            rute, bobot = rute_terpendek_ke_kursi(kursi)
-            st.caption(
-                f"Rute terpendek ke {kursi}: {' → '.join(rute)} · "
-                f"total bobot {bobot} unit"
-            )
 
 
 # ---------------------------------------------------------------------------
@@ -874,9 +779,6 @@ def tampilkan_denah_dan_pembayaran(film, nama, tanggal_tayang, pilihan_jam):
     harga = harga_tiket(film, tanggal_tayang)
     total = harga * len(kursi_dipilih)
     st.info("Kursi pilihan: " + (", ".join(kursi_dipilih) if kursi_dipilih else "belum dipilih"))
-    if kursi_dipilih:
-        tampilkan_rute_dijkstra(kursi_dipilih)
-
     metode_bayar = st.selectbox("Metode pembayaran", ["Tunai", "Kartu debit/kredit", "QRIS"])
     kiri_total, kanan_total = st.columns(2)
     kiri_total.metric("Harga per tiket", format_rupiah(harga))
@@ -1011,7 +913,7 @@ def main():
     else:
         tampilkan_halaman_daftar_film()
 
-    st.caption("Bioskop Matdis · Pilih film dan jadwal, lalu pesan kursi pilihan Anda.")
+    st.caption("Pilih film dan jadwal, lalu pesan kursi pilihan Anda.")
     tampilkan_identitas()
 
 
