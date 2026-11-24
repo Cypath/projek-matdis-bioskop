@@ -1000,8 +1000,7 @@ def main():
     st.markdown(
         """<header class="hero">
           <h1>🎬 Website Pemesanan Tiket Bioskop</h1>
-          <p style="color:#ffffff !important;background:rgba(15,23,42,.28);display:inline-block;
-                    padding:.35rem .65rem;border-radius:8px;font-weight:600;">
+          <p style="color:#ffffff !important;font-weight:600;">
             Pilih film, jadwal tayang, dan kursi favorit Anda.
           </p>
         </header>""",
