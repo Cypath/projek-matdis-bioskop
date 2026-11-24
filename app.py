@@ -913,7 +913,6 @@ def main():
     else:
         tampilkan_halaman_daftar_film()
 
-    st.caption("Pilih film dan jadwal tayang, lalu pesan kursi favorit Anda.")
     tampilkan_identitas()
 
 
