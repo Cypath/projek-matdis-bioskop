@@ -3,13 +3,15 @@
 .stApp {background: linear-gradient(135deg,#f5f7ff 0%,#eef6ff 48%,#f5f3ff 100%); color:#172033;
   font-family:'DM Sans','Segoe UI',sans-serif;}
 .block-container {padding: 2rem 2.5rem 3rem; max-width: 1400px;}
-.hero {padding: 1.5rem 1.8rem; border-radius: 24px; color: white;
-  background: linear-gradient(110deg,#111827,#1d4ed8 65%,#7c3aed);
-  box-shadow: 0 14px 36px rgba(30,64,175,.20); margin-bottom: 1rem;
-  animation:soft-enter .65s cubic-bezier(.2,.75,.25,1) both;}
-.hero h1 {margin: 0; color: white; font-size: 2.2rem;
-  font-family:'Space Grotesk','Segoe UI',sans-serif;letter-spacing:-.035em;}
-.hero p {margin: .45rem 0 0; color: #dbeafe;}
+:root {
+  --ink:#172033; --ink-soft:#334155; --muted:#64748b;
+  --line:#cbd5e1; --line-strong:#94a3b8;
+  --brand:#2563eb; --brand-dark:#1d4ed8; --brand-soft:#dbeafe;
+  --fokus:0 0 0 3px rgba(37,99,235,.35);
+  --kursi-tersedia:#22a06b; --kursi-tersedia-tepi:#16804f;
+  --kursi-dipilih:#2563eb;  --kursi-dipilih-tepi:#1d4ed8;
+  --kursi-terpesan:#e11d48; --kursi-terpesan-tepi:#be123c;
+}
 .stApp h1,.stApp h2,.stApp h3,.stApp h4 {font-family:'Space Grotesk','Segoe UI',sans-serif;
   letter-spacing:-.025em;}
 .stApp p,.stApp li,.stApp label,.stApp input,.stApp button {font-family:'DM Sans','Segoe UI',sans-serif;}
@@ -22,7 +24,6 @@
 .stApp [data-testid="stMetricLabel"], .stApp [data-testid="stMetricValue"] {
   color: #172033 !important;
 }
-.stApp .hero h1, .stApp .hero p {color: white !important;}
 .stApp [data-baseweb="tab"] p, .stApp [data-baseweb="tab"] div {
   color: #334155 !important;
 }
@@ -200,44 +201,76 @@
 .stApp [data-testid="stAlert"] > div {background:#e0f2fe !important;}
 .stApp [data-testid="stAlert"] p,
 .stApp [data-testid="stAlert"] span {color:#0c4a6e !important;}
-div[data-testid="stVerticalBlockBorderWrapper"] {border-radius: 18px;}
-/* Grid CSS menyamakan tinggi kartu dalam satu baris secara otomatis. */
+
+/* Status fokus: aturan di atas menghilangkan bingkai bawaan, jadi dipulihkan di sini. */
+.stApp [data-testid="stTextInputRootElement"]:focus-within,
+.stApp [data-testid="stTextInput"] [data-baseweb="input"]:focus-within > div,
+.stApp [data-testid="stTextInput"] [data-rac][role="group"]:focus-within {
+  border:1px solid var(--brand) !important;
+  box-shadow:var(--fokus) !important;
+}
+.stApp div[data-baseweb="select"]:focus-within > div,
+.stApp [data-rac][role="group"]:focus-within {
+  border-color:var(--brand) !important;
+  box-shadow:var(--fokus) !important;
+}
+.stApp div.stButton > button:focus-visible {
+  outline:3px solid rgba(37,99,235,.45) !important;outline-offset:2px;
+}
+
+/* ===== Tata letak dasar ===== */
+div[data-testid="stVerticalBlockBorderWrapper"] {border-radius:18px;}
+.stApp h4 {margin-top:1.1rem;}
+@media (max-width:640px) {
+  .block-container {padding:1.25rem 1rem 2.5rem;}
+}
+
+/* ===== Daftar film ===== */
+/* Grid menyamakan tinggi kartu dalam satu baris secara otomatis. */
 .film-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
-  align-items:stretch;gap:28px 40px;margin-top:1rem;}
-.film-card {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);
-  align-items:start;gap:24px;width:100%;height:100%;box-sizing:border-box;
-  padding:16px;border:1px solid #475569;border-radius:12px;color:#172033 !important;
-  text-decoration:none !important;background:rgba(255,255,255,.12);
+  align-items:stretch;gap:24px 32px;margin-top:1rem;}
+.film-card {display:grid;grid-template-columns:minmax(140px,38%) minmax(0,1fr);
+  align-items:start;gap:22px;width:100%;height:100%;box-sizing:border-box;
+  padding:16px;border:1px solid var(--line);border-radius:16px;
+  color:var(--ink) !important;text-decoration:none !important;
+  background:rgba(255,255,255,.72);box-shadow:0 2px 8px rgba(15,23,42,.05);
   transition:border-color .22s ease,box-shadow .22s ease,transform .22s ease;
   animation:soft-enter .55s cubic-bezier(.2,.75,.25,1) both;}
 .film-card:nth-child(2n) {animation-delay:.08s;}
 .film-card:nth-child(3n) {animation-delay:.14s;}
-.film-card:hover {border-color:#2563eb;box-shadow:0 10px 26px rgba(37,99,235,.16);
+.film-card:hover {border-color:var(--brand);box-shadow:0 10px 26px rgba(37,99,235,.16);
   transform:translateY(-2px);}
-.film-poster {display:block;width:100%;max-width:280px;height:auto;aspect-ratio:2/3;
-  object-fit:cover;border-radius:16px;box-shadow:0 8px 24px #0f172a26;
+.film-card:focus-visible {outline:3px solid rgba(37,99,235,.5);outline-offset:3px;
+  border-color:var(--brand);}
+.film-poster {display:block;width:100%;height:auto;aspect-ratio:2/3;object-fit:cover;
+  border-radius:12px;box-shadow:0 8px 24px #0f172a26;
   transition:transform .35s ease,box-shadow .35s ease;}
-.film-card:hover .film-poster {transform:scale(1.025);box-shadow:0 12px 28px #0f172a35;}
-.film-info {display:flex;flex-direction:column;height:100%;}
-.film-info h3 {margin:.15rem 0 1rem;font-family:'Space Grotesk','Segoe UI',sans-serif;
-  font-size:1.55rem;line-height:1.3;color:#172033;}
-.film-info p {margin:.7rem 0;font-size:1.02rem;line-height:1.55;color:#172033;}
+.film-card:hover .film-poster {transform:scale(1.02);box-shadow:0 12px 28px #0f172a35;}
+.film-info {display:flex;flex-direction:column;min-width:0;height:100%;}
+.film-info h3 {margin:.1rem 0 .8rem;font-family:'Space Grotesk','Segoe UI',sans-serif;
+  font-size:1.4rem;line-height:1.3;color:var(--ink);overflow-wrap:anywhere;}
+.film-info p {margin:.45rem 0;font-size:.97rem;line-height:1.5;color:var(--ink);}
 .film-info strong {font-weight:700;}
+.film-info .film-price {margin-top:auto;padding-top:.7rem;border-top:1px solid #e2e8f0;
+  color:var(--brand-dark);font-weight:600;}
+
+/* ===== Halaman pemesanan: poster, trailer, rating, sinopsis ===== */
+.poster-pemesanan {display:block;width:100%;max-width:280px;height:auto;aspect-ratio:2/3;
+  object-fit:cover;border-radius:16px;box-shadow:0 8px 24px #0f172a26;}
+.st-key-trailer_toggle {display:flex;justify-content:center;width:100%;margin-top:20px !important;}
 .stApp .st-key-trailer_toggle button {
-  width:100%;margin-top:12px;background:#2563eb !important;
-  border:1px solid #1d4ed8 !important;border-radius:10px !important;
-  color:#ffffff !important;font-weight:750;min-height:46px;
-  box-shadow:0 4px 10px rgba(37,99,235,.18);transition:transform .2s ease,box-shadow .2s ease,background .2s ease;
-}
+  width:100% !important;min-height:46px;background:var(--brand) !important;
+  border:1px solid var(--brand-dark) !important;border-radius:10px !important;
+  color:#ffffff !important;font-weight:750;box-shadow:0 4px 10px rgba(37,99,235,.18);
+  transition:transform .2s ease,box-shadow .2s ease,background .2s ease;}
 .stApp .st-key-trailer_toggle button:hover {
-  background:#1d4ed8 !important;border-color:#1e40af !important;color:#ffffff !important;
-  transform:translateY(-2px);box-shadow:0 8px 18px rgba(37,99,235,.24);
-}
+  background:var(--brand-dark) !important;border-color:#1e40af !important;color:#ffffff !important;
+  transform:translateY(-2px);box-shadow:0 8px 18px rgba(37,99,235,.24);}
 .ratings-row {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;
   width:100%;max-width:420px;margin:10px auto 12px;}
 .rating-card {height:84px;min-width:0;box-sizing:border-box;display:grid;
   grid-template-rows:40px 22px;row-gap:4px;justify-items:center;align-content:center;
-  padding:6px;border:1px solid #cbd5e1;border-radius:12px;
+  padding:6px;border:1px solid var(--line);border-radius:12px;
   background:rgba(255,255,255,.92);box-shadow:0 3px 9px rgba(15,23,42,.07);
   animation:soft-enter .5s ease both;transition:transform .2s ease,box-shadow .2s ease;}
 .rating-card:nth-child(2) {animation-delay:.08s;}
@@ -248,130 +281,161 @@ div[data-testid="stVerticalBlockBorderWrapper"] {border-radius: 18px;}
 .rating-brand img {display:block;max-width:82px;max-height:28px;width:auto;height:auto;object-fit:contain;}
 .rating-brand img.rating-logo-imdb {max-width:54px;max-height:28px;}
 .rating-brand img.rating-logo-icon {width:19px;height:19px;object-fit:contain;}
-.rating-label {font-family:Arial,Helvetica,sans-serif;font-size:.65rem;font-weight:750;
-  line-height:1.05;letter-spacing:.01em;text-align:center;color:#334155;white-space:nowrap;}
 .rating-value {width:100%;height:22px;display:flex;align-items:center;justify-content:center;
   font-family:Arial,Helvetica,sans-serif;font-size:1rem;font-weight:800;
-  line-height:1;color:#172033;white-space:nowrap;text-align:center;
+  line-height:1;color:var(--ink);white-space:nowrap;text-align:center;
   font-variant-numeric:tabular-nums;letter-spacing:.01em;}
 .rating-imdb {border-color:#f2cf72;background:linear-gradient(135deg,#fff9e8,#fff1c2);}
 .rating-imdb .rating-value {color:#352500;letter-spacing:.02em;font-family:"Arial Black",Arial,sans-serif;}
 .rating-rotten {border-color:#fecaca;background:#fff7f7;}
-.rating-rotten .rating-label,.rating-rotten .rating-value {color:#a31515;font-family:Arial,Helvetica,sans-serif;}
+.rating-rotten .rating-value {color:#a31515;}
 .rating-letterboxd {border-color:#bbf7d0;background:#f0fdf4;}
-.rating-letterboxd .rating-label,.rating-letterboxd .rating-value {color:#166534;font-family:"Helvetica Neue",Arial,sans-serif;}
+.rating-letterboxd .rating-value {color:#166534;font-family:"Helvetica Neue",Arial,sans-serif;}
 .sinopsis-panel {min-height:250px;height:100%;box-sizing:border-box;padding:18px;
-  border:1px solid #dbeafe;border-radius:14px;background:rgba(255,255,255,.58);
+  border:1px solid var(--brand-soft);border-radius:14px;background:rgba(255,255,255,.58);
   animation:soft-enter .55s ease both;}
-.sinopsis-panel h3 {margin:.1rem 0 1rem;font-size:1.25rem;color:#172033;}
-.sinopsis-panel p {margin:0;font-size:1rem;line-height:1.7;color:#334155;}
-.booking-guide {margin-top:14px;padding:18px;border:1px solid #dbeafe;border-radius:14px;
+.sinopsis-panel h3 {margin:.1rem 0 1rem;font-size:1.25rem;color:var(--ink);}
+.sinopsis-panel p {margin:0;font-size:1rem;line-height:1.7;color:var(--ink-soft);}
+.booking-guide {margin-top:14px;padding:18px;border:1px solid var(--brand-soft);border-radius:14px;
   background:rgba(255,255,255,.58);animation:soft-enter .6s ease both;}
-.booking-guide h3 {margin:0 0 14px;font-size:1.1rem;color:#172033;}
+.booking-guide h3 {margin:0 0 14px;font-size:1.1rem;color:var(--ink);}
 .booking-step {display:grid;grid-template-columns:30px minmax(0,1fr);align-items:start;
-  gap:10px;margin:11px 0;color:#334155;font-size:.92rem;line-height:1.5;
+  gap:10px;margin:11px 0;color:var(--ink-soft);font-size:.92rem;line-height:1.5;
   animation:soft-enter .45s ease both;}
 .booking-step:nth-of-type(2) {animation-delay:.08s;}
 .booking-step:nth-of-type(3) {animation-delay:.16s;}
 .booking-step:nth-of-type(4) {animation-delay:.24s;}
 .booking-step-number {display:grid;place-items:center;width:28px;height:28px;border-radius:50%;
-  background:#e0ecff;color:#1d4ed8;font-size:.82rem;font-weight:800;}
-.booking-guide-note {margin:14px 0 0;padding-top:11px;border-top:1px solid #dbeafe;
-  color:#64748b;font-size:.82rem;line-height:1.5;}
+  background:#e0ecff;color:var(--brand-dark);font-size:.82rem;font-weight:800;}
+.booking-guide-note {margin:14px 0 0;padding-top:11px;border-top:1px solid var(--brand-soft);
+  color:var(--muted);font-size:.82rem;line-height:1.5;}
+.petunjuk-jadwal {background:#e0f2fe;color:#0c4a6e;border:1px solid #7dd3fc;
+  border-radius:12px;padding:1rem;font-weight:600;}
+
+/* ===== Denah kursi ===== */
+.layar-bioskop {margin:.5rem auto 1rem;padding:.65rem;max-width:560px;text-align:center;
+  font-weight:700;letter-spacing:.18em;color:#1e3a8a;
+  background:linear-gradient(180deg,#bfdbfe,#dbeafe);
+  border-radius:6px 6px 50% 50% / 6px 6px 18px 18px;box-shadow:0 8px 18px rgba(37,99,235,.18);}
+.pintu-masuk-kursi {display:flex;width:100%;height:42px;box-sizing:border-box;
+  align-items:center;justify-content:center;padding:3px 1px;margin:0 0 12px;
+  border:1px solid #e6b84f;border-radius:8px;
+  background:linear-gradient(135deg,#fff8e7,#fff);color:#26354b;
+  font-size:.58rem;font-weight:800;letter-spacing:.015em;text-align:center;}
+.legenda-kursi {display:flex;flex-wrap:wrap;justify-content:center;gap:6px 20px;margin:.25rem 0 .75rem;}
+.legenda-item {display:inline-flex;align-items:center;gap:7px;font-size:.88rem;color:var(--ink-soft);}
+.legenda-item::before {content:"";width:14px;height:14px;border-radius:4px;background:var(--c);
+  border:1px solid var(--ct);}
+.legenda-tersedia {--c:var(--kursi-tersedia);--ct:var(--kursi-tersedia-tepi);}
+.legenda-dipilih {--c:var(--kursi-dipilih);--ct:var(--kursi-dipilih-tepi);}
+.legenda-terpesan {--c:var(--kursi-terpesan);--ct:var(--kursi-terpesan-tepi);}
+/* Denah 3-6-3 tetap satu baris penuh di layar sempit; bila terlalu sempit, denah bergulir mendatar. */
+.st-key-denah-kursi {max-width:760px;margin-inline:auto;overflow-x:auto;padding-bottom:4px;}
+.st-key-denah-kursi [data-testid="stHorizontalBlock"] {flex-wrap:nowrap !important;
+  min-width:360px;gap:.3rem !important;}
+.st-key-denah-kursi [data-testid="stColumn"] {min-width:0 !important;}
+/* Warna latar kursi per status dipasang dari app.py lewat variabel --kursi-*. */
+.st-key-denah-kursi [class*="st-key-kursi-"] button {
+  color:#ffffff !important;font-weight:700 !important;min-height:42px !important;
+  padding:.2rem !important;border-radius:8px;
+  transition:transform .15s ease,filter .15s ease,box-shadow .15s ease;}
+.st-key-denah-kursi [class*="st-key-kursi-"] button:not(:disabled):hover {
+  filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 4px 10px rgba(15,23,42,.2);}
+.st-key-denah-kursi [class*="st-key-kursi-"] button:focus-visible {
+  outline:3px solid rgba(15,23,42,.55) !important;outline-offset:1px;}
+.st-key-denah-kursi [class*="st-key-kursi-"] button:disabled {cursor:not-allowed;}
+@media (max-width:640px) {
+  .st-key-denah-kursi [class*="st-key-kursi-"] button {
+    min-height:36px !important;padding:0 !important;font-size:.64rem !important;}
+}
+
+/* ===== Konfirmasi dan tiket ===== */
 .ticket-card {display:grid;grid-template-columns:minmax(0,1fr) 168px;overflow:hidden;
-  margin:12px 0 18px;border:1px solid #cbd5e1;border-radius:14px;
-  background:#fffdf7;box-shadow:0 8px 22px rgba(15,23,42,.08);color:#172033;}
+  margin:12px 0 18px;border:1px solid var(--line);border-radius:14px;
+  background:#fffdf7;box-shadow:0 8px 22px rgba(15,23,42,.08);color:var(--ink);}
 .ticket-main {padding:18px 22px;border-top:5px solid #244fa7;}
 .ticket-head {display:flex;justify-content:space-between;align-items:center;gap:12px;
   padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #e2e8f0;}
 .ticket-brand {font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:800;letter-spacing:.16em;color:#244fa7;}
-.ticket-type {font-family:'IBM Plex Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:.12em;color:#64748b;}
+.ticket-type {font-family:'IBM Plex Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:.12em;color:var(--muted);}
 .ticket-title {margin:0 0 16px;font-family:'Space Grotesk','Segoe UI',sans-serif;
-  font-size:1.35rem;font-weight:800;line-height:1.25;color:#172033;}
-.ticket-info {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px;}
+  font-size:1.35rem;font-weight:800;line-height:1.25;color:var(--ink);}
+.ticket-info {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 18px;}
 .ticket-field {min-width:0;}
 .ticket-field-label {display:block;margin-bottom:4px;font-size:.66rem;font-weight:800;
-  letter-spacing:.09em;color:#64748b;text-transform:uppercase;}
+  letter-spacing:.09em;color:var(--muted);text-transform:uppercase;}
 .ticket-field-value {font-size:.9rem;font-weight:650;line-height:1.4;overflow-wrap:anywhere;color:#1e293b;}
 .ticket-foot {display:flex;justify-content:space-between;gap:12px;align-items:center;
   margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;}
 .ticket-code {font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:.76rem;
-  font-weight:700;letter-spacing:.05em;color:#475569;}
+  font-weight:700;letter-spacing:.05em;color:#475569;overflow-wrap:anywhere;}
 .ticket-payment {font-size:.78rem;color:#475569;text-align:right;}
 .ticket-stub {display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:16px 12px;border-left:2px dashed #94a3b8;background:#f1f5f9;text-align:center;}
-.ticket-seat-label {font-size:.68rem;font-weight:800;letter-spacing:.14em;color:#64748b;}
+  padding:16px 12px;border-left:2px dashed var(--line-strong);background:#f1f5f9;text-align:center;}
+.ticket-seat-label {font-size:.68rem;font-weight:800;letter-spacing:.14em;color:var(--muted);}
 .ticket-seat {margin:3px 0 8px;font-family:'Space Grotesk','Segoe UI',sans-serif;
   font-size:2.15rem;font-weight:900;line-height:1;color:#183b78;
   font-variant-numeric:tabular-nums;}
 .ticket-studio {font-size:.76rem;font-weight:700;color:#475569;}
-.ticket-price {margin-top:12px;font-size:.86rem;font-weight:800;color:#172033;}
+.ticket-price {margin-top:12px;font-size:.86rem;font-weight:800;color:var(--ink);}
 .ticket-barcode {width:100%;height:27px;margin-top:13px;opacity:.72;
   background:repeating-linear-gradient(90deg,#172033 0 2px,transparent 2px 4px,#172033 4px 5px,transparent 5px 8px);}
 .booking-confirmation {display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:18px;
   align-items:center;margin:10px 0 18px;padding:20px;border:1px solid #bbf7d0;
-  border-radius:14px;background:linear-gradient(135deg,#f0fdf4,#fff);color:#172033;}
+  border-radius:14px;background:linear-gradient(135deg,#f0fdf4,#fff);color:var(--ink);}
 .booking-status {display:inline-block;padding:5px 10px;border-radius:999px;background:#dcfce7;
   color:#166534;font-size:.78rem;font-weight:800;}
 .booking-confirmation h3 {margin:10px 0 6px;font-size:1.2rem;color:#14532d;}
-.booking-confirmation p {margin:5px 0;line-height:1.5;color:#334155;}
-.booking-code {display:inline-block;margin:8px 0;padding:8px 11px;border:1px dashed #86a98c;
+.booking-confirmation p {margin:5px 0;line-height:1.5;color:var(--ink-soft);}
+.booking-confirmation ul {margin:4px 0 0;padding-left:1.2rem;color:var(--ink-soft);line-height:1.55;}
+.booking-confirmation li {margin:3px 0;}
+.booking-code {display:inline-block;margin:8px 0 10px;padding:8px 11px;border:1px dashed #86a98c;
   border-radius:8px;background:#fff;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;
-  font-size:.95rem;font-weight:800;letter-spacing:.06em;color:#14532d;}
+  font-size:.95rem;font-weight:800;letter-spacing:.06em;color:#14532d;overflow-wrap:anywhere;}
 .booking-qr {display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;
   border:1px solid #d1d5db;border-radius:10px;background:#fff;}
 .booking-qr svg {display:block;width:112px;height:112px;image-rendering:pixelated;}
-.booking-qr small {font-size:.66rem;font-weight:800;letter-spacing:.08em;color:#64748b;}
-@media (prefers-reduced-motion: reduce) {
-  *,*::before,*::after {animation-duration:.01ms!important;animation-iteration-count:1!important;
-    scroll-behavior:auto!important;transition-duration:.01ms!important;}
+.booking-qr small {font-size:.66rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-align:center;}
+
+/* ===== Tombol umum ===== */
+div.stButton > button {border-radius:12px;min-height:42px;font-weight:650;
+  color:var(--ink);border-color:var(--line);background-color:#ffffff;
+  transition:border-color .2s ease,color .2s ease,box-shadow .2s ease;}
+div.stButton > button:hover {border-color:var(--brand);color:var(--brand-dark);}
+.stApp div[data-testid="stButton"] button[kind="primary"],
+.stApp div[data-testid="stButton"] button[data-testid="stBaseButton-primary"] {
+  background:#16a34a !important;background-color:#16a34a !important;
+  color:#ffffff !important;border:1px solid #15803d !important;}
+.stApp div[data-testid="stButton"] button[kind="primary"]:hover,
+.stApp div[data-testid="stButton"] button[data-testid="stBaseButton-primary"]:hover {
+  background:#15803d !important;background-color:#15803d !important;
+  border-color:#166534 !important;color:#ffffff !important;}
+div.stButton > button:disabled {opacity:.78;}
+[data-testid="stImage"] img {border-radius:16px;box-shadow:0 8px 24px #0f172a26;}
+/* Hilangkan ikon layar penuh yang Streamlit tampilkan pada gambar poster. */
+.stApp button[aria-label="View fullscreen"],
+.stApp [data-testid="stElementToolbar"] {display:none !important;}
+
+/* ===== Responsif ===== */
+@media (max-width:900px) {
+  .film-grid {grid-template-columns:1fr;gap:20px;}
+  .ticket-info {grid-template-columns:repeat(2,minmax(0,1fr));}
 }
-.st-key-trailer_toggle {display:flex;justify-content:center;width:100%;margin-top:28px!important;}
-.st-key-trailer_toggle [data-testid="stBaseButton-secondary"],
-.st-key-trailer_toggle [data-testid="stBaseButton-primary"],
-.st-key-trailer_toggle button {width:100%!important;margin-left:auto!important;margin-right:auto!important;}
-@media (max-width:650px) {
+@media (max-width:560px) {
+  .film-card {grid-template-columns:1fr;}
+  .film-poster {max-width:250px;margin:0 auto;}
+  .poster-pemesanan {max-width:240px;margin:0 auto;}
   .ticket-card {grid-template-columns:1fr;}
   .ticket-info {grid-template-columns:repeat(2,minmax(0,1fr));}
   .ticket-stub {display:grid;grid-template-columns:auto auto 1fr;gap:4px 12px;
-    justify-items:center;border-left:0;border-top:2px dashed #94a3b8;padding:12px;}
+    justify-items:center;border-left:0;border-top:2px dashed var(--line-strong);padding:12px;}
   .ticket-seat {margin:0;font-size:1.7rem;}
   .ticket-price {margin:0;}
   .ticket-barcode {grid-column:1/-1;max-width:220px;margin:6px auto 0;}
   .booking-confirmation {grid-template-columns:1fr;}
   .booking-qr {width:max-content;margin:0 auto;}
 }
-@media (max-width: 900px) {
-  .film-grid {grid-template-columns:1fr;gap:22px;}
-  .film-card {grid-template-columns:minmax(180px,.8fr) minmax(0,1.2fr);}
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after {animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    scroll-behavior:auto !important;transition-duration:.01ms !important;}
 }
-@media (max-width: 560px) {
-  .film-card {grid-template-columns:1fr;}
-  .film-poster {max-width:250px;margin:0 auto;}
-}
-div.stButton > button {border-radius: 12px; min-height: 42px; font-weight: 650;
-  color: #172033; border-color: #cbd5e1; background-color: #ffffff;}
-div.stButton > button:hover {border-color: #2563eb; color: #1d4ed8;}
-.stApp div[data-testid="stButton"] button[kind="primary"],
-.stApp div[data-testid="stButton"] button[data-testid="stBaseButton-primary"] {
-  background: #16a34a !important;
-  background-color: #16a34a !important;
-  color: #ffffff !important;
-  border: 1px solid #15803d !important;
-}
-.stApp div[data-testid="stButton"] button[kind="primary"]:hover,
-.stApp div[data-testid="stButton"] button[data-testid="stBaseButton-primary"]:hover {
-  background: #15803d !important;
-  background-color: #15803d !important;
-  border-color: #166534 !important;
-  color: #ffffff !important;
-}
-div.stButton > button:disabled {opacity: .78;}
-[data-testid="stImage"] img {border-radius: 16px; box-shadow: 0 8px 24px #0f172a26;}
-/* Hilangkan ikon layar penuh yang Streamlit tampilkan pada gambar poster. */
-.stApp button[aria-label="View fullscreen"],
-.stApp [data-testid="stElementToolbar"] {display:none !important;}
-.identitas-mahasiswa {display:block;width:fit-content;margin:16px 0 0 auto;
-  padding:8px 12px;border:1px solid #cbd5e1;border-radius:10px;
-  background:rgba(255,255,255,.94);color:#334155;font-size:12px;
-  line-height:1.45;text-align:right;box-shadow:0 4px 14px rgba(15,23,42,.12);}

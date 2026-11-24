@@ -1,7 +1,6 @@
+from base64 import b64encode
 from datetime import date, datetime, timedelta, timezone
 from html import escape
-from base64 import b64encode
-from heapq import heappop, heappush
 from pathlib import Path
 from uuid import uuid4
 
@@ -9,7 +8,7 @@ import streamlit as st
 
 
 st.set_page_config(
-    page_title="Bioskop Matdis · Pemesanan Tiket",
+    page_title="Bioskop · Pemesanan Tiket",
     page_icon="🎬",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -203,46 +202,80 @@ DAFTAR_FILM = [
     },
 ]
 
-# Urutan mengikuti rating IMDb; Avengers tetap di posisi pertama dan Attack on Titan setelah The Odyssey.
-film_pengecualian = DAFTAR_FILM[0]
-film_lain_urut = sorted(
-    [film for film in DAFTAR_FILM[1:] if film["judul"] != "Attack on Titan: The Last Attack"],
-    key=lambda film: film["rating_imdb"] or 0,
-    reverse=True,
-)
-film_aot = next(film for film in DAFTAR_FILM if film["judul"] == "Attack on Titan: The Last Attack")
-posisi_odyssey = next(
-    posisi for posisi, film in enumerate(film_lain_urut)
-    if film["judul"] == "The Odyssey"
-)
-film_lain_urut.insert(posisi_odyssey + 1, film_aot)
-DAFTAR_FILM = [film_pengecualian, *film_lain_urut]
-# Jadwal tetap dengan jarak antartayang yang realistis.
+
+# ---------------------------------------------------------------------------
+# Urutan daftar film dan jadwal tayang
+# ---------------------------------------------------------------------------
+JUDUL_ODYSSEY = "The Odyssey"
+JUDUL_AOT = "Attack on Titan: The Last Attack"
+
 JADWAL_5_TAYANG = ["10:00", "13:00", "16:00", "19:00", "22:00"]
 JADWAL_4_TAYANG = ["11:00", "14:00", "17:00", "20:00"]
 JADWAL_3_TAYANG = ["12:00", "16:00", "20:00"]
-for posisi, film in enumerate(DAFTAR_FILM, start=1):
-    if posisi <= 3:
-        film["jam"] = JADWAL_5_TAYANG
-    elif posisi <= 8:
-        film["jam"] = JADWAL_4_TAYANG
-    else:
-        film["jam"] = JADWAL_3_TAYANG
 
+
+def urutkan_film(daftar):
+    """Avengers tetap pertama, film lain mengikuti rating IMDb tertinggi,
+    dan Attack on Titan disisipkan tepat setelah The Odyssey."""
+    pembuka = daftar[0]
+    film_aot = next(film for film in daftar if film["judul"] == JUDUL_AOT)
+    lainnya = sorted(
+        [film for film in daftar[1:] if film["judul"] != JUDUL_AOT],
+        key=lambda film: film["rating_imdb"] or 0,
+        reverse=True,
+    )
+    posisi_odyssey = next(
+        posisi for posisi, film in enumerate(lainnya) if film["judul"] == JUDUL_ODYSSEY
+    )
+    lainnya.insert(posisi_odyssey + 1, film_aot)
+    return [pembuka, *lainnya]
+
+
+def tetapkan_jadwal(daftar):
+    """Jadwal tetap dengan jarak antartayang yang realistis, menurut posisi urutan."""
+    for posisi, film in enumerate(daftar, start=1):
+        if posisi <= 3:
+            film["jam"] = JADWAL_5_TAYANG
+        elif posisi <= 8:
+            film["jam"] = JADWAL_4_TAYANG
+        else:
+            film["jam"] = JADWAL_3_TAYANG
+
+
+DAFTAR_FILM = urutkan_film(DAFTAR_FILM)
+tetapkan_jadwal(DAFTAR_FILM)
+
+# ---------------------------------------------------------------------------
+# Konstanta aplikasi
+# ---------------------------------------------------------------------------
 BARIS_KURSI = list("ABCDEFGH")
 KOLOM_KURSI = 12
 TAMBAHAN_AKHIR_PEKAN = 10000
 ZONA_WAKTU = timezone(timedelta(hours=7), "WIB")
 FOLDER_POSTER = Path(__file__).resolve().parent / "posters"
 FOLDER_ASSET = Path(__file__).resolve().parent / "assets"
-EKSTENSI_POSTER = (".png", ".jpg", ".jpeg", ".webp")
+CSS_PATH = Path(__file__).resolve().with_name("styles.css")
+MIME_POSTER = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+}
 NAMA_BULAN = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
     "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ]
 NAMA_HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
 
+# Lebar relatif kolom pada satu baris denah: 3 kursi, lorong, 6 kursi, lorong, 3 kursi.
+LEBAR_KOLOM_DENAH = [1, 1, 1, 0.55, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1]
+# Indeks kolom Streamlit untuk kursi nomor 1-12 (indeks 3 dan 10 adalah lorong).
+INDEKS_KOLOM_KURSI = [0, 1, 2, 4, 5, 6, 7, 8, 9, 11, 12, 13]
 
+
+# ---------------------------------------------------------------------------
+# Fungsi pemformatan dan aturan harga
+# ---------------------------------------------------------------------------
 def format_rupiah(angka):
     return "Rp " + f"{angka:,}".replace(",", ".")
 
@@ -275,91 +308,18 @@ def semua_kursi():
     return [f"{baris}{kolom}" for baris in BARIS_KURSI for kolom in range(1, KOLOM_KURSI + 1)]
 
 
-def rute_terpendek_ke_kursi(tujuan):
-    """Terapkan teori graf dan algoritma Dijkstra pada denah auditorium.
-
-    Model yang digunakan:
-    - Simpul (vertex): pintu masuk dan setiap posisi kursi, misalnya A1 atau H12.
-    - Sisi (edge): hubungan antara posisi kursi yang bertetangga secara horizontal
-      atau vertikal. Pintu terhubung ke A6 dan A7 karena berada di antara keduanya.
-    - Bobot sisi: 1 unit untuk perpindahan biasa dan 3 unit saat melintasi lorong
-      pemisah blok 3-6-3. Nilai ini adalah bobot simulasi, bukan ukuran meter.
-
-    Dijkstra memulai jarak pintu dari 0, lalu berulang kali memproses simpul dengan
-    jarak terkecil. Jarak tetangga diperbarui jika rute baru lebih murah. Setelah
-    kursi tujuan tercapai, kamus `sebelumnya` dipakai untuk menyusun kembali rute.
-
-    Args:
-        tujuan: Kode kursi tujuan yang ada pada denah, misalnya "H8".
-
-    Returns:
-        Pasangan (daftar simpul rute dari PINTU, total bobot rute).
-    """
-    # Bentuk graf tak berarah: hubungan berjalan berlaku dua arah.
-    graf = {"PINTU": []}
-    for indeks_baris, baris in enumerate(BARIS_KURSI):
-        for kolom in range(1, KOLOM_KURSI + 1):
-            asal = f"{baris}{kolom}"
-            graf.setdefault(asal, [])
-
-            if kolom < KOLOM_KURSI:
-                kanan = f"{baris}{kolom + 1}"
-                # Penyeberangan celah antarblok dibuat lebih berat daripada langkah biasa.
-                bobot = 3 if kolom in (3, 9) else 1
-                graf[asal].append((kanan, bobot))
-                graf.setdefault(kanan, []).append((asal, bobot))
-
-            if indeks_baris < len(BARIS_KURSI) - 1:
-                bawah = f"{BARIS_KURSI[indeks_baris + 1]}{kolom}"
-                graf[asal].append((bawah, 1))
-                graf.setdefault(bawah, []).append((asal, 1))
-
-    # Baris A adalah bagian belakang auditorium; pintu dimodelkan di antara A6 dan A7.
-    graf["PINTU"] = [("A6", 1), ("A7", 1)]
-
-    # Tahap 1 Dijkstra: inisialisasi jarak semua simpul dengan tak hingga,
-    # kecuali simpul awal PINTU yang jaraknya nol.
-    jarak = {titik: float("inf") for titik in graf}
-    sebelumnya = {}
-    jarak["PINTU"] = 0
-    antrean = [(0, "PINTU")]
-
-    # Tahap 2: pilih simpul berjarak terkecil dan lakukan relaksasi sisi-sisinya.
-    while antrean:
-        biaya, titik = heappop(antrean)
-        if biaya != jarak[titik]:
-            continue
-        if titik == tujuan:
-            break
-        for tetangga, bobot in graf[titik]:
-            biaya_baru = biaya + bobot
-            if biaya_baru < jarak[tetangga]:
-                jarak[tetangga] = biaya_baru
-                sebelumnya[tetangga] = titik
-                heappush(antrean, (biaya_baru, tetangga))
-
-    # Tahap 3: telusuri simpul sebelumnya dari tujuan untuk membentuk rute akhir.
-    rute = [tujuan]
-    while rute[-1] != "PINTU":
-        rute.append(sebelumnya[rute[-1]])
-    rute.reverse()
-    return rute, int(jarak[tujuan])
+# ---------------------------------------------------------------------------
+# Poster dan logo (dibaca sekali lalu disimpan di cache agar rerun tetap ringan)
+# ---------------------------------------------------------------------------
+@st.cache_data(show_spinner=False)
+def _data_uri_dari_berkas(path_teks, mime, waktu_ubah):
+    # `waktu_ubah` hanya ikut menjadi kunci cache agar berkas yang diganti terbaca ulang.
+    isi = b64encode(Path(path_teks).read_bytes()).decode("ascii")
+    return f"data:{mime};base64,{isi}"
 
 
-def tampilkan_kursi(kode, kunci_jadwal, kursi_terpesan, kolom):
-    sudah_dipesan = kode in kursi_terpesan
-    dipilih = kode in st.session_state.kursi_dipilih
-    if kolom.button(
-        kode,
-        key=f"kursi-{kode}",
-        disabled=sudah_dipesan,
-        use_container_width=True,
-    ):
-        if dipilih:
-            st.session_state.kursi_dipilih.remove(kode)
-        else:
-            st.session_state.kursi_dipilih.add(kode)
-        st.rerun()
+def data_uri_berkas(path_berkas, mime):
+    return _data_uri_dari_berkas(str(path_berkas), mime, path_berkas.stat().st_mtime)
 
 
 def gambar_poster(film):
@@ -383,7 +343,7 @@ def gambar_poster(film):
       <text x="210" y="275" text-anchor="middle" fill="#fff" font-size="118" font-family="Arial,sans-serif">{ikon}</text>
       <text x="210" y="440" text-anchor="middle" fill="#fff" font-size="25" font-weight="700" font-family="Arial,sans-serif">{judul}</text>
       <text x="210" y="474" text-anchor="middle" fill="#e2e8f0" font-size="13" letter-spacing="2" font-family="Arial,sans-serif">{genre}</text>
-      <text x="210" y="555" text-anchor="middle" fill="#ffffff" fill-opacity=".72" font-size="11" letter-spacing="3" font-family="Arial,sans-serif">ILUSTRASI PROYEK MATDIS</text>
+      <text x="210" y="555" text-anchor="middle" fill="#ffffff" fill-opacity=".72" font-size="11" letter-spacing="3" font-family="Arial,sans-serif">INFORMASI FILM</text>
     </svg>'''
 
 
@@ -396,35 +356,34 @@ def logo_rating_data_uri(nama_file):
     file_logo = FOLDER_ASSET / nama_file
     if not file_logo.is_file():
         return ""
-    return "data:image/png;base64," + b64encode(file_logo.read_bytes()).decode("ascii")
+    return data_uri_berkas(file_logo, "image/png")
 
 
 def cari_file_poster(film):
-    for ekstensi in EKSTENSI_POSTER:
+    for ekstensi in MIME_POSTER:
         kandidat = FOLDER_POSTER / f"{film['poster_file']}{ekstensi}"
         if kandidat.is_file():
             return kandidat
     return None
 
 
-def html_kartu_film(film):
+def sumber_poster(film):
+    """Poster dari folder `posters` bila ada; jika tidak, memakai poster ilustrasi bawaan."""
     file_poster = cari_file_poster(film)
     if file_poster:
-        mime = {
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".webp": "image/webp",
-        }.get(file_poster.suffix.lower(), "image/png")
-        isi_gambar = b64encode(file_poster.read_bytes()).decode("ascii")
-        sumber_gambar = f"data:{mime};base64,{isi_gambar}"
-    else:
-        sumber_gambar = poster_data_uri(film)
+        mime = MIME_POSTER.get(file_poster.suffix.lower(), "image/png")
+        return data_uri_berkas(file_poster, mime)
+    return poster_data_uri(film)
 
+
+# ---------------------------------------------------------------------------
+# Pembuat HTML: kartu film, rating, konfirmasi, dan tiket
+# ---------------------------------------------------------------------------
+def html_kartu_film(film):
     judul = escape(film["judul"])
     jadwal = escape(", ".join(film["jam"]))
     return f'''<a class="film-card" href="?film={film['studio']}" target="_self" aria-label="Pilih film {judul}">
-      <img class="film-poster" src="{sumber_gambar}" alt="Poster {judul}">
+      <img class="film-poster" src="{sumber_poster(film)}" alt="Poster {judul}">
       <div class="film-info">
         <h3>{judul}</h3>
         <p><strong>Genre:</strong> {escape(film['genre'])}</p>
@@ -432,50 +391,34 @@ def html_kartu_film(film):
         <p><strong>Sutradara:</strong> {escape(film['sutradara'])}</p>
         <p><strong>Rating usia:</strong> {escape(film['usia'])}</p>
         <p><strong>Jadwal:</strong> {jadwal}</p>
-        <p><strong>Harga tiket:</strong> {format_rupiah(film['harga_dasar'])}</p>
+        <p class="film-price"><strong>Harga tiket:</strong> {format_rupiah(film['harga_dasar'])}</p>
       </div>
     </a>'''
 
 
-CSS_PATH = Path(__file__).resolve().with_name("styles.css")
-st.markdown(
-    f"<style>{CSS_PATH.read_text(encoding='utf-8')}</style>",
-    unsafe_allow_html=True,
-)
-
-if "kursi_terpesan" not in st.session_state:
-    st.session_state.kursi_terpesan = {}
-if "riwayat" not in st.session_state:
-    st.session_state.riwayat = []
-if "pesanan_terakhir" not in st.session_state:
-    st.session_state.pesanan_terakhir = None
-if "jadwal_kursi_aktif" not in st.session_state:
-    st.session_state.jadwal_kursi_aktif = None
-if "kursi_dipilih" not in st.session_state:
-    st.session_state.kursi_dipilih = set()
-
-if "halaman" not in st.session_state:
-    st.session_state.halaman = "daftar_film"
-if "film_aktif" not in st.session_state:
-    st.session_state.film_aktif = None
-if "trailer_film" not in st.session_state:
-    st.session_state.trailer_film = None
-
-# Tautan kartu mengirim nomor studio melalui query URL untuk membuka pemesanan.
-film_dari_url = st.query_params.get("film")
-if film_dari_url:
-    film_terpilih = next(
-        (item for item in DAFTAR_FILM if str(item["studio"]) == str(film_dari_url)),
-        None,
+def html_rating(film):
+    imdb = film.get("rating_imdb")
+    rotten = film.get("rating_rotten_tomatoes")
+    letterboxd = film.get("rating_letterboxd")
+    teks_imdb = f"{imdb:.1f}/10" if imdb is not None else "—"
+    teks_rotten = f"{rotten}%" if rotten is not None else "—"
+    teks_letterboxd = f"{letterboxd:.1f}/5" if letterboxd is not None else "—"
+    logo_imdb = logo_rating_data_uri("imdb-logo.png")
+    logo_rotten = logo_rating_data_uri("rotten-tomatoes.png")
+    logo_letterboxd = logo_rating_data_uri("letterboxd-logo.png")
+    return (
+        '<div class="ratings-row">'
+        '<div class="rating-card rating-imdb">'
+        f'<div class="rating-brand"><img class="rating-logo-imdb" src="{logo_imdb}" alt="IMDb"></div>'
+        f'<div class="rating-value">{teks_imdb}</div></div>'
+        '<div class="rating-card rating-rotten">'
+        f'<div class="rating-brand"><img class="rating-logo-icon" src="{logo_rotten}" alt="Rotten Tomatoes"></div>'
+        f'<div class="rating-value">{teks_rotten}</div></div>'
+        '<div class="rating-card rating-letterboxd">'
+        f'<div class="rating-brand"><img class="rating-logo-icon" src="{logo_letterboxd}" alt="Letterboxd"></div>'
+        f'<div class="rating-value">{teks_letterboxd}</div></div>'
+        '</div>'
     )
-    if film_terpilih:
-        film_berubah = st.session_state.film_aktif != film_terpilih["judul"]
-        st.session_state.film_aktif = film_terpilih["judul"]
-        st.session_state.halaman = "pemesanan"
-        if film_berubah:
-            st.session_state.kursi_dipilih = set()
-            st.session_state.jadwal_kursi_aktif = None
-            st.session_state.trailer_film = None
 
 
 def tiket_individu_pesanan(pesanan):
@@ -501,7 +444,7 @@ def html_kartu_tiket(pesanan, tiket, nomor_tiket, jumlah_tiket):
     return (
         '<article class="ticket-card">'
         '<div class="ticket-main">'
-        '<header class="ticket-head"><span class="ticket-brand">BIOSKOP MATDIS</span>'
+        '<header class="ticket-head"><span class="ticket-brand">BIOSKOP</span>'
         f'<span class="ticket-type">TIKET {nomor_tiket}</span></header>'
         f'<h3 class="ticket-title">{film_tiket}</h3>'
         '<div class="ticket-info">'
@@ -556,20 +499,104 @@ def html_konfirmasi_pesanan(pesanan):
         '<h3>Terima kasih telah memesan!</h3>'
         '<p>Kode booking adalah nomor referensi unik pesanan Anda. Simpan kode ini atau '
         'ambil tangkapan layar halaman sebagai bukti pemesanan.</p>'
+        f'<div class="booking-code">{kode_booking}</div>'
         '<p><strong>Kegunaan kode booking:</strong></p>'
         '<ul><li>Masukkan kode di mesin tiket mandiri untuk mencetak tiket fisik.</li>'
         '<li>Tunjukkan kode kepada petugas untuk verifikasi jika tiket sulit dibuka.</li>'
         '<li>Sertakan kode saat menghubungi layanan pelanggan untuk melacak kendala pesanan '
         'atau mengajukan pembatalan dan pengembalian dana.</li></ul>'
-        '<p>Datang 15 menit sebelum film dimulai. Siapkan kode booking saat mencetak tiket '
-        'atau ketika petugas meminta verifikasi.</p>'
-        f'<div class="booking-code">{kode_booking}</div>'
         '</div><div class="booking-qr">'
         + html_qr_contoh(kode_booking)
         + '<small>QR CONTOH · TIDAK UNTUK DIPINDAI</small></div></section>'
     )
 
 
+def tampilkan_etiket(pesanan):
+    """Konfirmasi pesanan diikuti satu tiket untuk setiap kursi."""
+    st.markdown(html_konfirmasi_pesanan(pesanan), unsafe_allow_html=True)
+    tiket_individu = tiket_individu_pesanan(pesanan)
+    for nomor_tiket, tiket in enumerate(tiket_individu, start=1):
+        st.markdown(
+            html_kartu_tiket(pesanan, tiket, nomor_tiket, len(tiket_individu)),
+            unsafe_allow_html=True,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Denah kursi
+# ---------------------------------------------------------------------------
+def tampilkan_kursi(kode, kursi_terpesan, kolom):
+    """Tombol satu kursi: klik menambah atau melepas pilihan; kursi terpesan dinonaktifkan."""
+    dipilih = kode in st.session_state.kursi_dipilih
+    if kolom.button(
+        kode,
+        key=f"kursi-{kode}",
+        disabled=kode in kursi_terpesan,
+        use_container_width=True,
+    ):
+        if dipilih:
+            st.session_state.kursi_dipilih.remove(kode)
+        else:
+            st.session_state.kursi_dipilih.add(kode)
+        st.rerun()
+
+
+def css_status_kursi(kursi_terpesan, kursi_dipilih):
+    """Warna kursi per status. Warna berasal dari variabel di styles.css;
+    gaya dasar tombol kursi juga berada di sana."""
+    kelompok = {"terpesan": [], "dipilih": [], "tersedia": []}
+    for kode in semua_kursi():
+        if kode in kursi_terpesan:
+            kelompok["terpesan"].append(kode)
+        elif kode in kursi_dipilih:
+            kelompok["dipilih"].append(kode)
+        else:
+            kelompok["tersedia"].append(kode)
+    aturan = []
+    for status, daftar_kode in kelompok.items():
+        if not daftar_kode:
+            continue
+        selektor = ",".join(f".st-key-denah-kursi .st-key-kursi-{kode} button" for kode in daftar_kode)
+        aturan.append(
+            f"{selektor}{{background:var(--kursi-{status})!important;"
+            f"border-color:var(--kursi-{status}-tepi)!important;}}"
+        )
+    return "<style>" + "".join(aturan) + "</style>"
+
+
+def tampilkan_denah_kursi(kursi_terpesan):
+    st.markdown("#### Pilih kursi")
+    st.markdown(
+        '<div class="legenda-kursi" role="list">'
+        '<span class="legenda-item legenda-tersedia" role="listitem">Tersedia</span>'
+        '<span class="legenda-item legenda-dipilih" role="listitem">Pilihan Anda</span>'
+        '<span class="legenda-item legenda-terpesan" role="listitem">Tidak tersedia</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+    with st.container(key="denah-kursi"):
+        st.markdown('<div class="layar-bioskop">LAYAR</div>', unsafe_allow_html=True)
+        kolom_pintu = st.columns(LEBAR_KOLOM_DENAH, gap="small")
+        with kolom_pintu[0]:
+            st.markdown(
+                '<div class="pintu-masuk-kursi">PINTU MASUK</div>',
+                unsafe_allow_html=True,
+            )
+        st.caption("Baris H berada paling dekat dengan layar. Susunan kursi setiap baris: 3–6–3.")
+        st.markdown(
+            css_status_kursi(kursi_terpesan, st.session_state.kursi_dipilih),
+            unsafe_allow_html=True,
+        )
+        # Baris H digambar paling atas karena paling dekat dengan layar.
+        for baris in reversed(BARIS_KURSI):
+            kolom_denah = st.columns(LEBAR_KOLOM_DENAH, gap="small")
+            for nomor, indeks_kolom in enumerate(INDEKS_KOLOM_KURSI, start=1):
+                tampilkan_kursi(f"{baris}{nomor}", kursi_terpesan, kolom_denah[indeks_kolom])
+
+
+# ---------------------------------------------------------------------------
+# Riwayat transaksi
+# ---------------------------------------------------------------------------
 def tampilkan_riwayat():
     st.subheader("Riwayat Transaksi")
     if not st.session_state.riwayat:
@@ -579,50 +606,25 @@ def tampilkan_riwayat():
     for nomor, pesanan in enumerate(st.session_state.riwayat, start=1):
         with st.expander(f"{nomor}. {pesanan['nama']} — {pesanan['film']} ({pesanan['tanggal']})"):
             st.write(f"**Total tiket:** {format_rupiah(pesanan['total'])}")
-            st.markdown(html_konfirmasi_pesanan(pesanan), unsafe_allow_html=True)
-            tiket_individu = tiket_individu_pesanan(pesanan)
-            for nomor_tiket, tiket in enumerate(tiket_individu, start=1):
-                st.markdown(
-                    html_kartu_tiket(pesanan, tiket, nomor_tiket, len(tiket_individu)),
-                    unsafe_allow_html=True,
-                )
+            tampilkan_etiket(pesanan)
 
 
-def tampilkan_form_pemesanan(film):
-    st.subheader("Pemesanan Tiket")
+# ---------------------------------------------------------------------------
+# Formulir pemesanan
+# ---------------------------------------------------------------------------
+def tampilkan_ringkasan_film(film):
+    """Poster, informasi film, rating, sinopsis, dan panduan singkat memesan."""
     with st.container(border=True):
         poster_col, info_col, sinopsis_col = st.columns([1, 1.35, 1.55], gap="large")
         with poster_col:
-            file_poster = cari_file_poster(film)
-            if file_poster:
-                mime_poster = {
-                    ".png": "image/png",
-                    ".jpg": "image/jpeg",
-                    ".jpeg": "image/jpeg",
-                    ".webp": "image/webp",
-                }.get(file_poster.suffix.lower(), "image/png")
-                data_poster = b64encode(file_poster.read_bytes()).decode("ascii")
-                st.markdown(
-                    f'<img src="data:{mime_poster};base64,{data_poster}" '
-                    f'alt="Poster {escape(film["judul"])}" '
-                    'style="display:block;width:100%;max-width:280px;height:auto;'
-                    'image-rendering:auto;border-radius:16px;box-shadow:0 8px 24px #0f172a26;" />',
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.markdown(
-                    f'<img src="{poster_data_uri(film)}" alt="Poster {escape(film["judul"])}" '
-                    'style="display:block;width:100%;max-width:280px;border-radius:16px;'
-                    'box-shadow:0 8px 24px #0f172a26;" />',
-                    unsafe_allow_html=True,
-                )
+            st.markdown(
+                f'<img class="poster-pemesanan" src="{sumber_poster(film)}" '
+                f'alt="Poster {escape(film["judul"])}" />',
+                unsafe_allow_html=True,
+            )
             trailer_sedang_dibuka = st.session_state.trailer_film == film["judul"]
             label_tombol_trailer = "✕ Tutup trailer" if trailer_sedang_dibuka else "▶ Tonton trailer"
-            if st.button(
-                label_tombol_trailer,
-                key="trailer_toggle",
-                use_container_width=True,
-            ):
+            if st.button(label_tombol_trailer, key="trailer_toggle", use_container_width=True):
                 st.session_state.trailer_film = None if trailer_sedang_dibuka else film["judul"]
                 st.rerun()
         with info_col:
@@ -635,31 +637,7 @@ def tampilkan_form_pemesanan(film):
             st.write("**Jadwal:** " + ", ".join(film["jam"]))
             st.write(f"**Harga tiket:** {format_rupiah(film['harga_dasar'])}")
             st.caption("Harga akhir pekan (Sabtu–Minggu) dikenakan tambahan Rp 10.000 per tiket.")
-            rating = film.get("rating_imdb")
-            rating_tampilan = f"{rating:.1f}/10" if rating is not None else "—"
-            rating_rt = film.get("rating_rotten_tomatoes")
-            rating_rt_tampilan = f"{rating_rt}%" if rating_rt is not None else "—"
-            rating_lb = film.get("rating_letterboxd")
-            rating_lb_tampilan = f"{rating_lb:.1f}/5" if rating_lb is not None else "—"
-            logo_imdb = logo_rating_data_uri("imdb-logo.png")
-            logo_rotten = logo_rating_data_uri("rotten-tomatoes.png")
-            logo_letterboxd = logo_rating_data_uri("letterboxd-logo.png")
-            st.markdown(
-                '<div class="ratings-row">'
-                '<div class="rating-card rating-imdb">'
-                f'<div class="rating-brand"><img class="rating-logo-imdb" src="{logo_imdb}" alt="IMDb"></div>'
-                f'<div class="rating-value">{rating_tampilan}</div></div>'
-                '<div class="rating-card rating-rotten">'
-                f'<div class="rating-brand"><img class="rating-logo-icon" src="{logo_rotten}" alt="">'
-                '</div>'
-                f'<div class="rating-value">{rating_rt_tampilan}</div></div>'
-                '<div class="rating-card rating-letterboxd">'
-                f'<div class="rating-brand"><img class="rating-logo-icon" src="{logo_letterboxd}" alt="">'
-                '</div>'
-                f'<div class="rating-value">{rating_lb_tampilan}</div></div>'
-                '</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown(html_rating(film), unsafe_allow_html=True)
         with sinopsis_col:
             st.markdown(
                 '<div class="sinopsis-panel">'
@@ -679,19 +657,25 @@ def tampilkan_form_pemesanan(film):
                 '<p class="booking-guide-note">Datang 15 menit sebelum film dimulai.</p></section>',
                 unsafe_allow_html=True,
             )
-    if st.session_state.trailer_film == film["judul"]:
-        st.markdown("#### Trailer " + film["judul"])
-        video_id = film.get("trailer_id")
-        if video_id:
-            st.video(f"https://www.youtube.com/watch?v={video_id}")
-        else:
-            st.info("Trailer untuk film ini belum tersedia.")
-    nama = st.text_input("Nama pemesan", placeholder="Masukkan nama Anda", key="nama_pemesan")
 
+
+def tampilkan_trailer(film):
+    """Trailer diputar di dalam halaman memakai pemutar video bawaan Streamlit."""
+    if st.session_state.trailer_film != film["judul"]:
+        return
+    st.markdown("#### Trailer " + film["judul"])
+    video_id = film.get("trailer_id")
+    if video_id:
+        st.video(f"https://www.youtube.com/watch?v={video_id}")
+    else:
+        st.info("Trailer untuk film ini belum tersedia.")
+
+
+def pilih_jadwal(film):
+    """Pilihan bulan, tanggal (tiga hari ke depan), dan jam tayang.
+    Mengembalikan (tanggal_tayang, jam_tayang); keduanya kosong bila belum lengkap."""
     tanggal_pemesanan = datetime.now(ZONA_WAKTU).date()
-    tanggal_yang_bisa_dipilih = [
-        tanggal_pemesanan + timedelta(days=selisih) for selisih in range(4)
-    ]
+    tanggal_yang_bisa_dipilih = [tanggal_pemesanan + timedelta(days=selisih) for selisih in range(4)]
     st.caption("Pilih tanggal tayang yang tersedia dalam tiga hari ke depan.")
 
     bulan_tersedia = sorted({(tanggal.year, tanggal.month) for tanggal in tanggal_yang_bisa_dipilih})
@@ -734,162 +718,165 @@ def tampilkan_form_pemesanan(film):
         format_func=lambda nilai: "— Pilih jam tayang —" if nilai == "" else nilai,
         key=f"pilihan_jam_{film['studio']}",
     )
-    jadwal_lengkap = bool(tanggal_tayang and pilihan_jam)
+    return tanggal_tayang, pilihan_jam
 
-    if jadwal_lengkap:
-        st.markdown(
-            f"**Studio {film['studio']}** · {pilihan_jam}–"
-            f"{waktu_selesai(pilihan_jam, film['durasi_menit'])}"
-        )
-        st.markdown("#### Pilih kursi")
-        st.caption("🟩 Tersedia  ·  🟦 Pilihan Anda  ·  🟥 Tidak tersedia")
 
-        kunci_jadwal = (film["judul"], tanggal_tayang.isoformat(), pilihan_jam)
-        if st.session_state.jadwal_kursi_aktif != kunci_jadwal:
-            st.session_state.jadwal_kursi_aktif = kunci_jadwal
-            st.session_state.kursi_dipilih = set()
-        kursi_terpesan = st.session_state.kursi_terpesan.get(kunci_jadwal, set())
+def simpan_pesanan(film, nama, tanggal_tayang, pilihan_jam, kunci_jadwal, kursi_dipilih, harga, total, metode_bayar):
+    """Validasi lalu simpan pesanan. Mengembalikan True bila pesanan berhasil dibuat."""
+    if not nama.strip():
+        st.error("Masukkan nama pemesan untuk melanjutkan.")
+        return False
+    if not kursi_dipilih:
+        st.error("Pilih setidaknya satu kursi pada denah.")
+        return False
 
-        with st.container(key="denah-kursi"):
-            st.markdown(
-                "<div style='text-align:center;background:#dbeafe;padding:.65rem;border-radius:12px;"
-                "font-weight:700;letter-spacing:.18em;margin:.5rem 0 1rem'>LAYAR</div>",
-                unsafe_allow_html=True,
-            )
-            st.caption("Baris H berada paling dekat dengan layar. Susunan kursi setiap baris: 3–6–3.")
-            aturan_warna_kursi = ["<style>"]
-            for kode in semua_kursi():
-                if kode in kursi_terpesan:
-                    warna_kursi = ("#e11d48", "#be123c")
-                elif kode in st.session_state.kursi_dipilih:
-                    warna_kursi = ("#2563eb", "#1d4ed8")
-                else:
-                    warna_kursi = ("#22a06b", "#16804f")
-                aturan_warna_kursi.append(
-                    f".st-key-kursi-{kode} button{{background:{warna_kursi[0]}!important;"
-                    f"border:1px solid {warna_kursi[1]}!important;color:#fff!important;"
-                    "font-weight:700!important;min-height:42px!important;padding:.2rem!important;}"
-                )
-            aturan_warna_kursi.append("</style>")
-            st.markdown("".join(aturan_warna_kursi), unsafe_allow_html=True)
+    sudah_dipesan_sekarang = st.session_state.kursi_terpesan.setdefault(kunci_jadwal, set())
+    bentrok = set(kursi_dipilih) & sudah_dipesan_sekarang
+    if bentrok:
+        st.error("Kursi berikut sudah tidak tersedia. Silakan pilih kursi lain: " + ", ".join(sorted(bentrok)))
+        return False
 
-            for baris in reversed(BARIS_KURSI):
-                kolom_denah = st.columns(
-                    [1, 1, 1, 0.55, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1],
-                    gap="small",
-                )
-                for nomor in range(1, 4):
-                    tampilkan_kursi(
-                        f"{baris}{nomor}", kunci_jadwal, kursi_terpesan, kolom_denah[nomor - 1]
-                    )
-                for nomor in range(4, 10):
-                    tampilkan_kursi(
-                        f"{baris}{nomor}", kunci_jadwal, kursi_terpesan, kolom_denah[nomor]
-                    )
-                for nomor in range(10, 13):
-                    tampilkan_kursi(
-                        f"{baris}{nomor}", kunci_jadwal, kursi_terpesan, kolom_denah[nomor + 1]
-                    )
+    sudah_dipesan_sekarang.update(kursi_dipilih)
+    tiket_individu = [
+        {"kursi": kursi, "kode": f"TIX-{uuid4().hex[:8].upper()}", "harga": harga}
+        for kursi in kursi_dipilih
+    ]
+    pesanan = {
+        "nama": nama.strip().title(),
+        "kode_booking": f"BOOK-{uuid4().hex[:8].upper()}",
+        "film": film["judul"],
+        "tanggal": tanggal_tayang.strftime("%d/%m/%Y"),
+        "jam": f"{pilihan_jam}-{waktu_selesai(pilihan_jam, film['durasi_menit'])}",
+        "studio": film["studio"],
+        "kursi": kursi_dipilih,
+        "tiket_individu": tiket_individu,
+        "harga": harga,
+        "total": total,
+        "pembayaran": metode_bayar,
+    }
+    st.session_state.riwayat.append(pesanan)
+    st.session_state.pesanan_terakhir = pesanan
+    st.session_state.kursi_dipilih = set()
+    st.success("Pemesanan berhasil. E-tiket Anda telah diterbitkan.")
+    return True
 
-        kursi_dipilih = sorted(st.session_state.kursi_dipilih)
-        harga = harga_tiket(film, tanggal_tayang)
-        total = harga * len(kursi_dipilih)
-        st.info("Kursi pilihan: " + (", ".join(kursi_dipilih) if kursi_dipilih else "belum dipilih"))
-        if kursi_dipilih:
-            with st.expander("Penerapan Matematika Diskrit · Graf dan Dijkstra"):
-                st.markdown(
-                    "**Tujuan:** mencari rute dengan total bobot paling kecil dari pintu "
-                    "auditorium ke kursi yang dipilih.\n\n"
-                    "**Model graf:** simpul adalah pintu dan posisi kursi; sisi menghubungkan "
-                    "kursi yang berdekatan. Setiap langkah biasa berbobot 1, sedangkan "
-                    "perpindahan melintasi lorong antarblok berbobot 3. Bobot ini merupakan "
-                    "satuan simulasi, bukan jarak dalam meter.\n\n"
-                    "**Cara kerja:** Dijkstra membandingkan akumulasi bobot dari pintu, "
-                    "memperbarui rute yang lebih murah, lalu menampilkan jalur menuju kursi."
-                )
-                for kursi in kursi_dipilih:
-                    rute, bobot = rute_terpendek_ke_kursi(kursi)
-                    st.caption(
-                        f"Rute terpendek ke {kursi}: {' → '.join(rute)} · "
-                        f"total bobot {bobot} unit"
-                    )
-        metode_bayar = st.selectbox("Metode pembayaran", ["Tunai", "Kartu debit/kredit", "QRIS"])
-        kiri_total, kanan_total = st.columns(2)
-        kiri_total.metric("Harga per tiket", format_rupiah(harga))
-        kanan_total.metric("Total pembayaran", format_rupiah(total))
 
-        if st.button("Konfirmasi pemesanan", type="primary", use_container_width=True):
-            if not nama.strip():
-                st.error("Masukkan nama pemesan untuk melanjutkan.")
-            elif not kursi_dipilih:
-                st.error("Pilih setidaknya satu kursi pada denah.")
-            else:
-                sudah_dipesan_sekarang = st.session_state.kursi_terpesan.setdefault(kunci_jadwal, set())
-                bentrok = set(kursi_dipilih) & sudah_dipesan_sekarang
-                if bentrok:
-                    st.error("Kursi berikut sudah tidak tersedia. Silakan pilih kursi lain: " + ", ".join(sorted(bentrok)))
-                else:
-                    sudah_dipesan_sekarang.update(kursi_dipilih)
-                    tiket_individu = [
-                        {
-                            "kursi": kursi,
-                            "kode": f"TIX-{uuid4().hex[:8].upper()}",
-                            "harga": harga,
-                        }
-                        for kursi in kursi_dipilih
-                    ]
-                    pesanan = {
-                        "nama": nama.strip().title(),
-                        "kode_booking": f"BOOK-{uuid4().hex[:8].upper()}",
-                        "film": film["judul"],
-                        "tanggal": tanggal_tayang.strftime("%d/%m/%Y"),
-                        "jam": f"{pilihan_jam}-{waktu_selesai(pilihan_jam, film['durasi_menit'])}",
-                        "studio": film["studio"],
-                        "kursi": kursi_dipilih,
-                        "tiket_individu": tiket_individu,
-                        "harga": harga,
-                        "total": total,
-                        "pembayaran": metode_bayar,
-                    }
-                    st.session_state.riwayat.append(pesanan)
-                    st.session_state.pesanan_terakhir = pesanan
-                    st.session_state.kursi_dipilih = set()
-                    st.success("Pemesanan berhasil. E-tiket Anda telah diterbitkan.")
-                    st.rerun()
+def tampilkan_denah_dan_pembayaran(film, nama, tanggal_tayang, pilihan_jam):
+    st.markdown(
+        f"**Studio {film['studio']}** · {pilihan_jam}–"
+        f"{waktu_selesai(pilihan_jam, film['durasi_menit'])}"
+    )
+
+    # Pilihan kursi dikosongkan setiap kali jadwal berganti.
+    kunci_jadwal = (film["judul"], tanggal_tayang.isoformat(), pilihan_jam)
+    if st.session_state.jadwal_kursi_aktif != kunci_jadwal:
+        st.session_state.jadwal_kursi_aktif = kunci_jadwal
+        st.session_state.kursi_dipilih = set()
+    kursi_terpesan = st.session_state.kursi_terpesan.get(kunci_jadwal, set())
+
+    tampilkan_denah_kursi(kursi_terpesan)
+
+    kursi_dipilih = sorted(st.session_state.kursi_dipilih)
+    harga = harga_tiket(film, tanggal_tayang)
+    total = harga * len(kursi_dipilih)
+    st.info("Kursi pilihan: " + (", ".join(kursi_dipilih) if kursi_dipilih else "belum dipilih"))
+
+    metode_bayar = st.selectbox("Metode pembayaran", ["Tunai", "Kartu debit/kredit", "QRIS"])
+    kiri_total, kanan_total = st.columns(2)
+    kiri_total.metric("Harga per tiket", format_rupiah(harga))
+    kanan_total.metric("Total pembayaran", format_rupiah(total))
+
+    if st.button("Konfirmasi pemesanan", type="primary", use_container_width=True):
+        if simpan_pesanan(
+            film, nama, tanggal_tayang, pilihan_jam, kunci_jadwal,
+            kursi_dipilih, harga, total, metode_bayar,
+        ):
+            st.rerun()
+
+
+def tampilkan_form_pemesanan(film):
+    st.subheader("Pemesanan Tiket")
+    tampilkan_ringkasan_film(film)
+    tampilkan_trailer(film)
+    nama = st.text_input("Nama pemesan", placeholder="Masukkan nama Anda", key="nama_pemesan")
+    tanggal_tayang, pilihan_jam = pilih_jadwal(film)
+
+    if tanggal_tayang and pilihan_jam:
+        tampilkan_denah_dan_pembayaran(film, nama, tanggal_tayang, pilihan_jam)
     else:
         st.markdown(
-            "<div style='background:#e0f2fe;color:#0c4a6e;border:1px solid #7dd3fc;"
-            "border-radius:12px;padding:1rem;font-weight:600'>"
+            '<div class="petunjuk-jadwal">'
             "Pilih tanggal dan jam tayang untuk melihat denah kursi yang tersedia."
             "</div>",
             unsafe_allow_html=True,
         )
 
     if st.session_state.pesanan_terakhir:
-        pesanan_terakhir = st.session_state.pesanan_terakhir
         st.subheader("E-Tiket Anda")
-        st.markdown(html_konfirmasi_pesanan(pesanan_terakhir), unsafe_allow_html=True)
-        tiket_individu = tiket_individu_pesanan(pesanan_terakhir)
-        for nomor_tiket, tiket in enumerate(tiket_individu, start=1):
-            st.markdown(
-                html_kartu_tiket(pesanan_terakhir, tiket, nomor_tiket, len(tiket_individu)),
-                unsafe_allow_html=True,
-            )
+        tampilkan_etiket(st.session_state.pesanan_terakhir)
 
 
-if st.session_state.halaman == "pemesanan" and st.session_state.film_aktif:
-    with st.container():
-        if st.button("← Kembali ke film yang sedang tayang"):
-            st.session_state.halaman = "daftar_film"
-            st.query_params.clear()
-            st.rerun()
-        film_booking = next(
-            (item for item in DAFTAR_FILM if item["judul"] == st.session_state.film_aktif),
-            None,
-        )
-        if film_booking:
-            tampilkan_form_pemesanan(film_booking)
-else:
+# ---------------------------------------------------------------------------
+# Status sesi, navigasi, dan halaman utama
+# ---------------------------------------------------------------------------
+def inisialisasi_state():
+    # Pabrik nilai awal dipakai agar setiap sesi mendapat objek baru, bukan objek bersama.
+    nilai_awal = {
+        "kursi_terpesan": dict,
+        "riwayat": list,
+        "pesanan_terakhir": lambda: None,
+        "jadwal_kursi_aktif": lambda: None,
+        "kursi_dipilih": set,
+        "halaman": lambda: "daftar_film",
+        "film_aktif": lambda: None,
+        "trailer_film": lambda: None,
+    }
+    for kunci, pabrik in nilai_awal.items():
+        if kunci not in st.session_state:
+            st.session_state[kunci] = pabrik()
+
+
+def sinkronkan_film_dari_url():
+    # Tautan kartu mengirim nomor studio melalui query URL untuk membuka pemesanan.
+    film_dari_url = st.query_params.get("film")
+    if not film_dari_url:
+        return
+    film_terpilih = next(
+        (item for item in DAFTAR_FILM if str(item["studio"]) == str(film_dari_url)),
+        None,
+    )
+    if not film_terpilih:
+        return
+    film_berubah = st.session_state.film_aktif != film_terpilih["judul"]
+    st.session_state.film_aktif = film_terpilih["judul"]
+    st.session_state.halaman = "pemesanan"
+    if film_berubah:
+        st.session_state.kursi_dipilih = set()
+        st.session_state.jadwal_kursi_aktif = None
+        st.session_state.trailer_film = None
+
+
+def muat_css():
+    st.markdown(
+        f"<style>{CSS_PATH.read_text(encoding='utf-8')}</style>",
+        unsafe_allow_html=True,
+    )
+
+
+def tampilkan_halaman_pemesanan():
+    if st.button("← Kembali ke film yang sedang tayang"):
+        st.session_state.halaman = "daftar_film"
+        st.query_params.clear()
+        st.rerun()
+    film_booking = next(
+        (item for item in DAFTAR_FILM if item["judul"] == st.session_state.film_aktif),
+        None,
+    )
+    if film_booking:
+        tampilkan_form_pemesanan(film_booking)
+
+
+def tampilkan_halaman_daftar_film():
     tab_film, tab_riwayat = st.tabs(["🎞️  Sedang Tayang", "📋  Riwayat Transaksi"])
     with tab_film:
         st.subheader("Film yang Sedang Tayang")
@@ -899,11 +886,19 @@ else:
     with tab_riwayat:
         tampilkan_riwayat()
 
-st.caption("Bioskop Matdis · Pilih film dan jadwal, lalu pesan kursi pilihan Anda.")
-st.markdown(
-    '<div class="identitas-mahasiswa"><strong>M. Bintang Al Akbar. M</strong><br><strong>F1E126032</strong></div>',
-    unsafe_allow_html=True,
-)
+
+def main():
+    muat_css()
+    inisialisasi_state()
+    sinkronkan_film_dari_url()
+
+    if st.session_state.halaman == "pemesanan" and st.session_state.film_aktif:
+        with st.container():
+            tampilkan_halaman_pemesanan()
+    else:
+        tampilkan_halaman_daftar_film()
+
+    st.caption("Pilih film dan jadwal, lalu pesan kursi pilihan Anda.")
 
 
-
+main()
