@@ -3,19 +3,6 @@
 .stApp {background: linear-gradient(135deg,#f5f7ff 0%,#eef6ff 48%,#f5f3ff 100%); color:#172033;
   font-family:'DM Sans','Segoe UI',sans-serif;}
 .block-container {padding: 2rem 2.5rem 3rem; max-width: 1400px;}
-.hero {position:relative;overflow:hidden;margin:0 0 1.35rem;padding:1.45rem 1.8rem;
-  border-radius:22px;color:#fff;background:linear-gradient(110deg,#111827,#1d4ed8 65%,#7c3aed);
-  box-shadow:0 14px 36px rgba(30,64,175,.2);animation:soft-enter .6s ease both;}
-.hero::after {content:"";position:absolute;width:220px;height:220px;right:-65px;top:-105px;
-  border-radius:50%;background:rgba(255,255,255,.1);pointer-events:none;}
-.stApp .hero h1 {position:relative;z-index:1;margin:0;color:#fff!important;
-  font-family:'Space Grotesk','Segoe UI',sans-serif;font-size:clamp(1.55rem,3vw,2.35rem);
-  font-weight:800;line-height:1.18;letter-spacing:-.035em;}
-.stApp .hero h1 a,
-.stApp .hero h1 button,
-.stApp .hero [data-testid="stHeaderActionElements"] {display:none!important;}
-.stApp .hero p {position:relative;z-index:1;margin:.55rem 0 0;color:#e5edff!important;
-  font-size:.98rem;line-height:1.5;}
 :root {
   --ink:#172033; --ink-soft:#334155; --muted:#64748b;
   --line:#cbd5e1; --line-strong:#94a3b8;
@@ -37,8 +24,6 @@
 .stApp [data-testid="stMetricLabel"], .stApp [data-testid="stMetricValue"] {
   color: #172033 !important;
 }
-.stApp [data-testid="stMarkdownContainer"] .hero p {
-  color:#ffffff !important;-webkit-text-fill-color:#ffffff !important;}
 .stApp [data-baseweb="tab"] p, .stApp [data-baseweb="tab"] div {
   color: #334155 !important;
 }
@@ -332,11 +317,6 @@ div[data-testid="stVerticalBlockBorderWrapper"] {border-radius:18px;}
   font-weight:700;letter-spacing:.18em;color:#1e3a8a;
   background:linear-gradient(180deg,#bfdbfe,#dbeafe);
   border-radius:6px 6px 50% 50% / 6px 6px 18px 18px;box-shadow:0 8px 18px rgba(37,99,235,.18);}
-.pintu-masuk-kursi {display:flex;width:100%;height:42px;box-sizing:border-box;
-  align-items:center;justify-content:center;padding:3px 1px;margin:0 0 12px;
-  border:1px solid #e6b84f;border-radius:8px;
-  background:linear-gradient(135deg,#fff8e7,#fff);color:#26354b;
-  font-size:.58rem;font-weight:800;letter-spacing:.015em;text-align:center;}
 .legenda-kursi {display:flex;flex-wrap:wrap;justify-content:center;gap:6px 20px;margin:.25rem 0 .75rem;}
 .legenda-item {display:inline-flex;align-items:center;gap:7px;font-size:.88rem;color:var(--ink-soft);}
 .legenda-item::before {content:"";width:14px;height:14px;border-radius:4px;background:var(--c);
@@ -349,6 +329,11 @@ div[data-testid="stVerticalBlockBorderWrapper"] {border-radius:18px;}
 .st-key-denah-kursi [data-testid="stHorizontalBlock"] {flex-wrap:nowrap !important;
   min-width:360px;gap:.3rem !important;}
 .st-key-denah-kursi [data-testid="stColumn"] {min-width:0 !important;}
+.auditorium-entrance-seat {display:flex;min-height:42px;box-sizing:border-box;
+  align-items:center;justify-content:center;margin:0 0 12px;padding:4px 2px;
+  border:1px solid #e6b84f;border-radius:10px;background:linear-gradient(135deg,#fff8e7,#fff);
+  color:#26354b;text-align:center;font-size:.56rem;font-weight:800;line-height:1.15;
+  letter-spacing:.025em;}
 /* Warna latar kursi per status dipasang dari app.py lewat variabel --kursi-*. */
 .st-key-denah-kursi [class*="st-key-kursi-"] button {
   color:#ffffff !important;font-weight:700 !important;min-height:42px !important;
@@ -430,6 +415,12 @@ div.stButton > button:disabled {opacity:.78;}
 /* Hilangkan ikon layar penuh yang Streamlit tampilkan pada gambar poster. */
 .stApp button[aria-label="View fullscreen"],
 .stApp [data-testid="stElementToolbar"] {display:none !important;}
+
+/* ===== Identitas (berada di akhir halaman, rata kanan) ===== */
+.identitas-mahasiswa {display:block;width:fit-content;max-width:100%;margin:24px 0 0 auto;
+  padding:8px 12px;border:1px solid var(--line);border-radius:10px;
+  background:rgba(255,255,255,.94);color:var(--ink-soft);font-size:12px;
+  line-height:1.45;text-align:right;box-shadow:0 4px 14px rgba(15,23,42,.12);}
 
 /* ===== Responsif ===== */
 @media (max-width:900px) {
