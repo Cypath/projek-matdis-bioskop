@@ -3,18 +3,6 @@
 .stApp {background: linear-gradient(135deg,#f5f7ff 0%,#eef6ff 48%,#f5f3ff 100%); color:#172033;
   font-family:'DM Sans','Segoe UI',sans-serif;}
 .block-container {padding: 2rem 2.5rem 3rem; max-width: 1400px;}
-.hero {position:relative;overflow:hidden;margin:0 0 1.35rem;padding:1.45rem 1.8rem;
-  border-radius:22px;color:#fff;background:linear-gradient(110deg,#111827,#1d4ed8 65%,#7c3aed);
-  box-shadow:0 14px 36px rgba(30,64,175,.2);animation:soft-enter .6s ease both;}
-.hero::after {content:"";position:absolute;width:220px;height:220px;right:-65px;top:-105px;
-  border-radius:50%;background:rgba(255,255,255,.1);pointer-events:none;}
-.hero-kicker {display:block;margin-bottom:.35rem;color:#bfdbfe;font-size:.73rem;
-  font-weight:800;letter-spacing:.16em;}
-.stApp .hero h1 {position:relative;z-index:1;margin:0;color:#fff!important;
-  font-family:'Space Grotesk','Segoe UI',sans-serif;font-size:clamp(1.55rem,3vw,2.35rem);
-  font-weight:800;line-height:1.18;letter-spacing:-.035em;}
-.stApp .hero p {position:relative;z-index:1;margin:.55rem 0 0;color:#e5edff!important;
-  font-size:.98rem;line-height:1.5;}
 :root {
   --ink:#172033; --ink-soft:#334155; --muted:#64748b;
   --line:#cbd5e1; --line-strong:#94a3b8;
