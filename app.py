@@ -32,7 +32,7 @@ DAFTAR_FILM = [
         "rating_rotten_tomatoes": 85,
         "rating_letterboxd": 4.6,
         "sinopsis": "Ketika ancaman baru mempertemukan para pahlawan dari berbagai dunia, mereka harus mengesampingkan perbedaan dan menghadapi kekuatan yang jauh melampaui kemampuan mereka. Nasib banyak semesta bergantung pada keberhasilan mereka bersatu.",
-        "trailer_id": "PyTEUYXVDaU",
+        "trailer_id": "0iMvTIxFRPk",
     },
     {
         "judul": "The Odyssey",
@@ -913,7 +913,7 @@ def main():
     else:
         tampilkan_halaman_daftar_film()
 
-    st.caption("Pilih film dan jadwal, lalu pesan kursi pilihan Anda.")
+    st.caption("Pilih film dan jadwal tayang, lalu pesan kursi favorit Anda.")
     tampilkan_identitas()
 
 
