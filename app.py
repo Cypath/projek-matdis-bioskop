@@ -672,11 +672,15 @@ def tampilkan_rute_dijkstra(kursi_dipilih):
     with st.expander("Penerapan Matematika Diskrit · Graf dan Dijkstra"):
         st.markdown(
             "**Tujuan:** mencari rute dengan total bobot paling kecil dari pintu "
-            "auditorium ke kursi yang dipilih.\n\n"
+            "auditorium ke kursi yang dipilih.
+
+"
             "**Model graf:** simpul adalah pintu dan posisi kursi; sisi menghubungkan "
             "kursi yang berdekatan. Setiap langkah biasa berbobot 1, sedangkan "
             "perpindahan melintasi lorong antarblok berbobot 3. Bobot ini merupakan "
-            "satuan simulasi, bukan jarak dalam meter.\n\n"
+            "satuan simulasi, bukan jarak dalam meter.
+
+"
             "**Cara kerja:** Dijkstra membandingkan akumulasi bobot dari pintu, "
             "memperbarui rute yang lebih murah, lalu menampilkan jalur menuju kursi."
         )
@@ -1000,9 +1004,7 @@ def main():
     st.markdown(
         """<header class="hero">
           <h1>🎬 Website Pemesanan Tiket Bioskop</h1>
-          <p style="color:#ffffff !important;font-weight:600;">
-            Pilih film, jadwal tayang, dan kursi favorit Anda.
-          </p>
+          <p class="hero-subtitle">Pilih film, jadwal tayang, dan kursi favorit Anda.</p>
         </header>""",
         unsafe_allow_html=True,
     )
